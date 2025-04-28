@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks - Task Manager{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>My Tasks</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('tasks.new_task') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Task
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <select id="statusFilter" class="form-select">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="priorityFilter" class="form-select">
+                            <option value="all">All Priorities</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="sortBy" class="form-select">
+                            <option value="due_date">Sort by Due Date</option>
+                            <option value="priority">Sort by Priority</option>
+                            <option value="created_at">Sort by Created Date</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="taskList">
+    {% for task in tasks %}
+    <div class="col-md-4 mb-4 task-item" 
+         data-status="{{ task.status }}" 
+         data-priority="{{ task.priority }}">
+        <div class="card shadow task-card {% if task.status == 'completed' %}completed-task{% endif %}">
+            <div class="card-header d-flex justify-content-between align-items-center
+                       {% if task.priority == 'high' %}bg-danger text-white
+                       {% elif task.priority == 'medium' %}bg-warning
+                       {% else %}bg-info text-white{% endif %}">
+                <h5 class="mb-0">{{ task.title }}</h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('tasks.edit_task', task_id=task.id) }}">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('tasks.toggle_task', task_id=task.id) }}">
+                                <i class="fas fa-check"></i> Toggle Status
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="{{ url_for('tasks.delete_task', task_id=task.id) }}"
+                               onclick="return confirm('Are you sure you want to delete this task?')">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ task.description }}</p>
+                <div class="mb-2">
+                    <span class="badge bg-secondary">{{ task.status }}</span>
+                    {% if task.due_date %}
+                    <span class="badge bg-info">Due: {{ task.due_date.strftime('%Y-%m-%d') }}</span>
+                    {% endif %}
+                </div>
+                <small class="text-muted">Created: {{ task.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center">
+        <p class="lead">No tasks found. <a href="{{ url_for('tasks.new_task') }}">Create your first task</a>!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const taskList = document.getElementById('taskList');
+    const statusFilter = document.getElementById('statusFilter');
+    const priorityFilter = document.getElementById('priorityFilter');
+    const sortBy = document.getElementById('sortBy');
+
+    function filterTasks() {
+        const status = statusFilter.value;
+        const priority = priorityFilter.value;
+        const tasks = document.querySelectorAll('.task-item');
+
+        tasks.forEach(task => {
+            const taskStatus = task.dataset.status;
+            const taskPriority = task.dataset.priority;
+            const statusMatch = status === 'all' || taskStatus === status;
+            const priorityMatch = priority === 'all' || taskPriority === priority;
+
+            task.style.display = statusMatch && priorityMatch ? '' : 'none';
+        });
+    }
+
+    function sortTasks() {
+        const tasks = Array.from(document.querySelectorAll('.task-item'));
+        const sortValue = sortBy.value;
+
+        tasks.sort((a, b) => {
+            if (sortValue === 'priority') {
+                const priorityOrder = { high: 1, medium: 2, low: 3 };
+                return priorityOrder[a.dataset.priority] - priorityOrder[b.dataset.priority];
+            }
+            // Add more sorting options as needed
+        });
+
+        tasks.forEach(task => taskList.appendChild(task));
+    }
+
+    statusFilter.addEventListener('change', filterTasks);
+    priorityFilter.addEventListener('change', filterTasks);
+    sortBy.addEventListener('change', sortTasks);
+});
+</script>
+{% endblock %} 
